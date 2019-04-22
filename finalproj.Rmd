@@ -9,17 +9,22 @@ library(tidyr)
 library(stringr)
 library(mosaic)
 library(plyr)
+library(ggplot2)
 ```
 
 ```{r}
+# options
+# display as decimal, not scientific notation
+options(scipen = 999)
+
 # data for 2013 - 2016
 county_poverty <- read.csv(file = 'county_poverty_hist.csv', header = TRUE, sep = ',')
-
 county_poverty$geo_sumlevel <- gsub('[[:punct:]]\\s', '', str_extract(county_poverty$geo_name, '\\,\\s[A-Z]{2}'))
 county_poverty$geo_name <- gsub('\\,\\s[A-Z]{2}', '', county_poverty$geo_name)
 county_poverty <- county_poverty[-3]
 names(county_poverty) <- c('county', 'state', 'p2013', 'p2014', 'p2015', 'pr2013', 'pr2014', 'pr2015', 'pr2016', 'p2016', 'pop2013', 'pop2014', 'pop2015', 'pop2016')
 county_poverty <- county_poverty %>% 
+  na.omit() %>%
   select(sort(current_vars()))
 
 # remove Puerto Rico
@@ -30,7 +35,6 @@ county_poverty <- county_poverty %>%
 # pYEAR = number of people in poverty, for the given year
 # prYEAR = poverty rate, for the given year
 # popYEAR = total population, for the given year
-
 # tall data set
 cp1 <- gather(county_poverty[c(1:5, 14)], year, poverty_count, p2013:p2016, factor_key = TRUE) %>% 
   mutate(year = str_extract(year, '\\d{4}'))
@@ -65,10 +69,9 @@ state_poverty <- table(county_poverty$state) %>%
   data.frame()
 names(state_poverty) <- c('state', 'n_counties')
 
-sp <- list()
 # 51 = number of states, including Washington D.C.
 # create a data table of summary stats per state
-# fix list data frame loop pls
+sp <- list()
 for(i in 1:51) {
   state_stats <- data.frame(summary(county_poverty[which(county_poverty$state == state_poverty$state[i]), ]))[7:78, 2:3] %>% 
   mutate(stat = gsub('\\s*\\:', '', str_extract(Freq, '.*\\:')), 
@@ -80,19 +83,38 @@ for(i in 1:51) {
   sp[[i]] <- state_stats
 }
 
+# clean data, rename variables and reorganize column order
 state_poverty <- merge(state_poverty, do.call(rbind, sp), by = 'state') %>% 
   select(sort(current_vars()))
 state_poverty <- state_poverty[, c(8, 10, 9, 1:7)]
-state_poverty$Var2[state_poverty$Var2 == 'p'] <- 'county_poverty'
-state_poverty$Var2[state_poverty$Var2 == 'pr'] <- 'county_poverty_rate'
-state_poverty$Var2[state_poverty$Var2 == 'pop'] <- 'county_pop'
+state_poverty$Var2[state_poverty$Var2 == 'p'] <- 'poverty_count'
+state_poverty$Var2[state_poverty$Var2 == 'pr'] <- 'poverty_rate'
+state_poverty$Var2[state_poverty$Var2 == 'pop'] <- 'total_count'
 names(state_poverty) <- c('state', 'year', 'countystat', '1st_quantile', '3rd_quantile', 'max', 'mean', 'median', 'minimum', 'n_counties')
 
+# create variables measuring the standard deviation and variance of population, poverty count, and poverty rate within each state, per year
+state_variance <- c()
+state_sd <- c()
+for(i in 1:nrow(state_poverty)) {
+  state_variance[i] <- cp %>% 
+    filter(state == state_poverty$state[i] & year == state_poverty$year[i]) %>% 
+    select(state_poverty$countystat[i]) %>% 
+    var()
+  state_sd[i] <- sapply(cp %>% filter(state == state_poverty$state[i] & year == state_poverty$year[i]) %>% select(state_poverty$countystat[i]), sd)[[1]][1]
+}
+
+state_poverty$var <- state_variance
+state_poverty$sd <- state_sd
+state_poverty[is.na(state_poverty)] <- 0
+
+# merge state stats with statistics on total state population, total state poverty count, and overall state poverty rate
 state_poverty <- merge(state_poverty, 
                        merge(aggregate(poverty_count ~ year + state, cp, sum), 
                              aggregate(total_count ~ year + state, cp, sum), 
                              by = c('year', 'state')) %>% 
                          mutate(poverty_rate = poverty_count / total_count), 
                        by = c('year', 'state'))
-names(state_poverty) <- c('year', 'state', 'countystat', '1st_quantile', '3rd_quantile', 'max', 'mean', 'median', 'minimum', 'n_counties', 'state_poverty', 'state_pop', 'state_poverty_rate')
+
+# rename state-wide variables for clarity
+names(state_poverty) <- c('year', 'state', 'countystat', '1st_quantile', '3rd_quantile', 'max', 'mean', 'median', 'minimum', 'n_counties', 'var', 'sd', 'state_poverty_count', 'state_total_count', 'state_poverty_rate')
 ```

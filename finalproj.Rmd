@@ -7,38 +7,24 @@ output: html_notebook
 library(dplyr)
 library(tidyr)
 library(stringr)
+library(mosaic)
+library(plyr)
 ```
 
 ```{r}
-# data for 2017
-county_poverty1 <- read.csv(file = 'county_poverty.csv', header = TRUE, sep = ',')
 # data for 2013 - 2016
-county_poverty2 <- read.csv(file = 'county_poverty_hist.csv', header = TRUE, sep = ',')
-```
+county_poverty <- read.csv(file = 'county_poverty_hist.csv', header = TRUE, sep = ',')
 
-```{r}
-county_poverty1$State <- gsub('[[:punct:]]', '', str_extract(county_poverty1$State...County.Name, '\\([A-Z]{2}\\)'))
-county_poverty1$State...County.Name <- gsub('\\s\\([A-Z]{2}\\)\\s*', '', county_poverty1$State...County.Name %>% as.character())
-county_poverty1 <- county_poverty1[c(2, 4, 5, 6, 10)]
-names(county_poverty1) <- c('state', 'county', 'pop2017', 'p2017', 'pr2017')
-
-# change class of variables from factor to numeric
-county_poverty1$pop2017 <- gsub(',', '', county_poverty1$pop2017) %>% 
-  as.numeric()
-county_poverty1$p2017 <- gsub(',', '', county_poverty1$p2017) %>% 
-  as.numeric()
-
-# remake poverty rate variable 'pr2017' manually for a more precise figure
-county_poverty1$pr2017 <- county_poverty1$p2017 / county_poverty1$pop2017
-county_poverty1 <- county_poverty1  %>% 
+county_poverty$geo_sumlevel <- gsub('[[:punct:]]\\s', '', str_extract(county_poverty$geo_name, '\\,\\s[A-Z]{2}'))
+county_poverty$geo_name <- gsub('\\,\\s[A-Z]{2}', '', county_poverty$geo_name)
+county_poverty <- county_poverty[-3]
+names(county_poverty) <- c('county', 'state', 'p2013', 'p2014', 'p2015', 'pr2013', 'pr2014', 'pr2015', 'pr2016', 'p2016', 'pop2013', 'pop2014', 'pop2015', 'pop2016')
+county_poverty <- county_poverty %>% 
   select(sort(current_vars()))
 
-county_poverty2$geo_sumlevel <- gsub('[[:punct:]]\\s', '', str_extract(county_poverty2$geo_name, '\\,\\s[A-Z]{2}'))
-county_poverty2$geo_name <- gsub('\\,\\s[A-Z]{2}', '', county_poverty2$geo_name)
-county_poverty2 <- county_poverty2[-3]
-names(county_poverty2) <- c('county', 'state', 'p2013', 'p2014', 'p2015', 'pr2013', 'pr2014', 'pr2015', 'pr2016', 'p2016', 'pop2013', 'pop2014', 'pop2015', 'pop2016')
-county_poverty2 <- county_poverty2 %>% 
-  select(sort(current_vars()))
+# remove Puerto Rico
+county_poverty <- county_poverty %>% 
+  filter(state != 'PR')
 
 # naming scheme:
 # pYEAR = number of people in poverty, for the given year
@@ -46,12 +32,9 @@ county_poverty2 <- county_poverty2 %>%
 # popYEAR = total population, for the given year
 
 # tall data set
-county_poverty <- merge(x = county_poverty1, y = county_poverty2, by = c('county', 'state')) %>% 
-  select(sort(current_vars())) %>%
-  na.omit()
-cp1 <- gather(county_poverty[c(1:6, 17)], year, poverty_count, p2013:p2017, factor_key = TRUE) %>% 
+cp1 <- gather(county_poverty[c(1:5, 14)], year, poverty_count, p2013:p2016, factor_key = TRUE) %>% 
   mutate(year = str_extract(year, '\\d{4}'))
-cp2 <- gather(county_poverty[c(1, 7:11, 17)], year, total_count, pop2013:pop2017, factor_key = TRUE) %>% 
+cp2 <- gather(county_poverty[c(1, 6:9, 14)], year, total_count, pop2013:pop2016, factor_key = TRUE) %>% 
   mutate(year = str_extract(year, '\\d{4}'))
 cp <- merge(cp1, cp2, by = c('county', 'state', 'year')) %>% 
   mutate(poverty_rate = poverty_count / total_count,
@@ -85,8 +68,9 @@ names(state_poverty) <- c('state', 'n_counties')
 sp <- list()
 # 51 = number of states, including Washington D.C.
 # create a data table of summary stats per state
+# fix list data frame loop pls
 for(i in 1:51) {
-  state_stats <- data.frame(summary(county_poverty[which(county_poverty$state == state_poverty$state[i]), ]))[7:96,2:3] %>% 
+  state_stats <- data.frame(summary(county_poverty[which(county_poverty$state == state_poverty$state[i]), ]))[7:78, 2:3] %>% 
   mutate(stat = gsub('\\s*\\:', '', str_extract(Freq, '.*\\:')), 
          Freq = gsub(':', '', str_extract(Freq, '\\:.+')) %>% as.numeric()) %>% 
   reshape(idvar = 'Var2', timevar = 'stat', direction = 'wide') %>%
@@ -110,5 +94,5 @@ state_poverty <- merge(state_poverty,
                              by = c('year', 'state')) %>% 
                          mutate(poverty_rate = poverty_count / total_count), 
                        by = c('year', 'state'))
-names(state_poverty) <- c('state', 'year', 'countystat', '1st_quantile', '3rd_quantile', 'max', 'mean', 'median', 'minimum', 'n_counties', 'state_poverty', 'state_pop', 'state_poverty_rate')
+names(state_poverty) <- c('year', 'state', 'countystat', '1st_quantile', '3rd_quantile', 'max', 'mean', 'median', 'minimum', 'n_counties', 'state_poverty', 'state_pop', 'state_poverty_rate')
 ```

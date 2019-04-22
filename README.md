@@ -72,7 +72,7 @@ four **different** plots):
 
 * 
 
-(D) .Rmd Line number(s) for a third visualization:
+(D) .Rmd Line number(s) for a fourth visualization:
 
 * 
 

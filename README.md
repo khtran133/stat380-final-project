@@ -18,9 +18,17 @@ Our final project uses data of poverty throughout the United States on a per-cou
 
 (A) .Rmd Line number(s) for an example of general purpose data wrangling:
 
-* Lines 43-45
+* Lines 31-32
 
-* Lines 77-82
+* Lines 39-45
+
+* Lines 64-65
+
+* Lines 76-82
+
+* Lines 87-88
+
+* Lines 100-103
 
 * Lines 111-116
 
@@ -52,9 +60,7 @@ Our final project uses data of poverty throughout the United States on a per-cou
 
 (F) .Rmd Line number(s) for use of vectorized functions:
 
-* Lines 74-84
-
-* Lines 96-104
+* Line 103
 
 ### Data Visualization (all 4 required)
 

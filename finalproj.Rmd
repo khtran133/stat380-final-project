@@ -10,6 +10,8 @@ library(stringr)
 library(mosaic)
 library(plyr)
 library(ggplot2)
+library(rvest)
+library(reshape2)
 ```
 
 ```{r}
@@ -22,6 +24,12 @@ county_poverty <- read.csv(file = 'county_poverty_hist.csv', header = TRUE, sep 
 county_poverty$geo_sumlevel <- gsub('[[:punct:]]\\s', '', str_extract(county_poverty$geo_name, '\\,\\s[A-Z]{2}'))
 county_poverty$geo_name <- gsub('\\,\\s[A-Z]{2}', '', county_poverty$geo_name)
 county_poverty <- county_poverty[-3]
+
+# naming scheme:
+# pYEAR = number of people in poverty, for the given year
+# prYEAR = poverty rate, for the given year
+# popYEAR = total population, for the given year
+# tall data set
 names(county_poverty) <- c('county', 'state', 'p2013', 'p2014', 'p2015', 'pr2013', 'pr2014', 'pr2015', 'pr2016', 'p2016', 'pop2013', 'pop2014', 'pop2015', 'pop2016')
 county_poverty <- county_poverty %>% 
   na.omit() %>%
@@ -30,20 +38,9 @@ county_poverty <- county_poverty %>%
 # remove Puerto Rico
 county_poverty <- county_poverty %>% 
   filter(state != 'PR')
+```
 
-# naming scheme:
-# pYEAR = number of people in poverty, for the given year
-# prYEAR = poverty rate, for the given year
-# popYEAR = total population, for the given year
-# tall data set
-cp1 <- gather(county_poverty[c(1:5, 14)], year, poverty_count, p2013:p2016, factor_key = TRUE) %>% 
-  mutate(year = str_extract(year, '\\d{4}'))
-cp2 <- gather(county_poverty[c(1, 6:9, 14)], year, total_count, pop2013:pop2016, factor_key = TRUE) %>% 
-  mutate(year = str_extract(year, '\\d{4}'))
-cp <- merge(cp1, cp2, by = c('county', 'state', 'year')) %>% 
-  mutate(poverty_rate = poverty_count / total_count,
-         year = year %>% as.numeric())
-
+```{r}
 # regress 'county_poverty' variables with year, by county
 county_poverty$p_rval <- c()
 county_poverty$p_coef <- c()
@@ -63,7 +60,9 @@ for (i in 1:nrow(county_poverty)) {
 
 county_poverty <- county_poverty %>% 
   select(sort(current_vars()))
+```
 
+```{r}
 # data set of poverty, by state
 state_poverty <- table(county_poverty$state) %>% 
   data.frame()
@@ -91,6 +90,77 @@ state_poverty$Var2[state_poverty$Var2 == 'p'] <- 'poverty_count'
 state_poverty$Var2[state_poverty$Var2 == 'pr'] <- 'poverty_rate'
 state_poverty$Var2[state_poverty$Var2 == 'pop'] <- 'total_count'
 names(state_poverty) <- c('state', 'year', 'countystat', '1st_quantile', '3rd_quantile', 'max', 'mean', 'median', 'minimum', 'n_counties')
+```
+
+```{r}
+# economic/unemployment data
+# https://apps.bea.gov/regional/
+ec <- read.csv('CAINC4__ALL_STATES_1969_2017.csv', header = TRUE, sep = ',')
+ec <- ec[, c('GeoFIPS', 'GeoName', 'Description', 'X2013', 'X2014', 'X2015', 'X2016')]
+ec$Description <- gsub('[[:punct:]]', '', ec$Description) %>% 
+  trimws()
+
+# keep 'Per capita personal income (dollars) 4/', 'Total employment', 'Farm proprietors' income', 'Nonfarm proprietors' income'
+# clean data
+ec <- ec %>% filter(ec$Description == 'Per capita personal income dollars 4' | 
+                      ec$Description == 'Total employment' | 
+                      ec$Description == 'Farm proprietors income' | 
+                      ec$Description == 'Nonfarm proprietors income')
+ec$Description[ec$Description == 'Per capita personal income dollars 4'] <- 'income'
+ec$Description[ec$Description == 'Total employment'] <- 'empl_count'
+ec$Description[ec$Description == 'Farm proprietors income'] <- 'farm_income'
+ec$Description[ec$Description == 'Nonfarm proprietors income'] <- 'nonfarm_income'
+ec <- dcast(melt(ec, 
+                 id.vars = c('GeoFIPS', 'GeoName', 'Description'), 
+                 measure.vars = c('X2013', 'X2014', 'X2015', 'X2016')), 
+            GeoFIPS + GeoName + variable ~ Description) %>% 
+  mutate(variable = gsub('X', '', variable))
+ec[, 1:2] <- lapply(ec[, 1:2], as.character)
+ec[, c(1, 3:7)] <- lapply(ec[, c(1, 3:7)], as.numeric)
+ec$p_farm_income <- ec$farm_income / ec$nonfarm_income
+ec[is.na(ec)] <- 0
+
+# state data
+## COMBINE WITH 'STATE_DATA' DATA FRAME
+state_ec <- ec[(ec$GeoFIPS %% 1000 == 0), ]
+state_ec <- subset(state_ec, select = -c(GeoFIPS))
+names(state_ec) <- c('state', 'year', 'empl_count', 'farm_income', 'income', 'nonfarm_income', 'p_farm_income')
+```
+
+```{r}
+# create tall data set
+cp1 <- gather(county_poverty[c(1:5, 14)], year, poverty_count, p2013:p2016, factor_key = TRUE) %>% 
+  mutate(year = str_extract(year, '\\d{4}'))
+cp2 <- gather(county_poverty[c(1, 6:9, 14)], year, total_count, pop2013:pop2016, factor_key = TRUE) %>% 
+  mutate(year = str_extract(year, '\\d{4}'))
+cp <- merge(cp1, cp2, by = c('county', 'state', 'year')) %>% 
+  mutate(poverty_rate = poverty_count / total_count,
+         year = year %>% as.numeric())
+cp$county <- gsub('\\sCounty', '', cp$county)
+cp$county <- gsub('\\sParish', '', cp$county)
+cp$county <- gsub('\\scity', '\\sCity', cp$county)
+cp$county <- gsub('[[:punct:]]', '', cp$county)
+cp$county <- cp$county %>% 
+  trimws()
+
+# county data
+county_ec <- ec[!(ec$GeoFIPS %% 1000 == 0), ]
+county_ec <- subset(county_ec, select = -c(GeoFIPS))
+county_ec$state <- gsub('[[:punct:]]\\s', '', str_extract(county_ec$GeoName, '\\,\\s[A-Z]{2}'))
+county_ec$GeoName <- gsub('\\,\\s[A-Z]{2}', '', county_ec$GeoName)
+names(county_ec) <- c('county', 'year', 'empl_count', 'farm_income', 'income', 'nonfarm_income', 'p_farm_income', 'state')
+county_ec$county <- gsub('[[:punct:]]', '', county_ec$county)
+county_ec$county <- gsub('\\sIndependent\\sCity', '\\sCity', county_ec$county)
+county_ec$county <- gsub('\\sStaunton\\sWaynesboro', '', county_ec$county)
+county_ec$county <- county_ec$county %>% 
+  trimws()
+
+county_data <- merge(cp, county_ec, by = c('county', 'state', 'year'))
+county_data$empl_rate <- county_data$empl_count / county_data$total_count
+```
+
+```{r}
+## REDO var & sd stats, need to do for more variables than 
 
 # create variables measuring the standard deviation and variance of population, poverty count, and poverty rate within each state, per year
 state_variance <- c()
@@ -117,4 +187,11 @@ state_poverty <- merge(state_poverty,
 
 # rename state-wide variables for clarity
 names(state_poverty) <- c('year', 'state', 'countystat', '1st_quantile', '3rd_quantile', 'max', 'mean', 'median', 'minimum', 'n_counties', 'var', 'sd', 'state_poverty_count', 'state_total_count', 'state_poverty_rate')
+```
+
+
+```{r}
+# crime data
+state_crime <- read.csv(file = 'estimated_crimes.csv', header = TRUE, sep = ',')
+state_data <- merge(state_poverty, state_crime[, -c(2, 4, 15)], by.x = c('year', 'state'), by.y = c('year', 'state_abbr'))
 ```

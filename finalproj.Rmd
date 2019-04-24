@@ -4,6 +4,10 @@ output: html_notebook
 ---
 
 ```{r}
+# always clean up R environment
+rm(list = ls())
+#Load up Packages
+library(readr)
 library(dplyr)
 library(tidyr)
 library(stringr)
@@ -12,8 +16,27 @@ library(plyr)
 library(ggplot2)
 library(rvest)
 library(reshape2)
+library(tidyverse)
+library(openxlsx)
+estimated_crimes <- read_csv("C:/Users/Dominic/Desktop/estimated_crimes.csv")
 ```
 
+```{r}
+estimated_crimes_States_DC <- filter(estimated_crimes, 
+                                     state_id > 0)
+estimated_crimes_DC <- filter(estimated_crimes, 
+                              state_id == 10)
+
+Estim_Crimes <- estimated_crimes %>%
+  filter(year %in% c(2013, 2014, 2015, 2016)) %>%
+  group_by(state_name, state_abbr, state_id) %>%
+  select(state_name, state_abbr, state_id, year,
+         population, violent_crime, property_crime)
+```
+
+```{r}
+write.xlsx(Estim_Crimes, file = "Estim_Crimes.xlsx", colNames = TRUE, borders = "columns")
+```
 ```{r}
 # options
 # display as decimal, not scientific notation

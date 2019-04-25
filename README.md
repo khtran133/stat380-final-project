@@ -12,41 +12,85 @@ Our final project uses data of poverty throughout the United States on a per-cou
 
 (A) .Rmd Line number(s) for join operation:
 
-*
+* Lines 111-112
+
+* Lines 141-142
+
+* Lines 180-181
+
+* Lines 225-229
 
 ### Data Wrangling (5 of 6 required)
 
 (A) .Rmd Line number(s) for an example of general purpose data wrangling:
 
-* Lines 31-32
+* Line 36
 
-* Lines 39-45
+* Lines 39-43
 
-* Lines 64-65
+* Lines 56-59
 
-* Lines 76-82
+* Line 68
 
-* Lines 87-88
+* Lines 77-79
 
-* Lines 100-103
+* Lines 86-90
 
-* Lines 111-116
+* Lines 100-101
+
+* Line 111
+
+* Lines 147-148
+
+* Lines 156-161
+
+* Line 167
+
+* Line 181
+
+* Lines 188-191
+
+* Lines 208-215
+
+* Lines 226-228
 
 (B) .Rmd Line number(s) for a spread & gather (or equivalent):
 
-* Lines 39-42
+* Lines 64-68
 
 * Line 79
 
+* Lines 85-89
+
+* Lines 129-131
+
+* Line 142
+
+* Line 158
+
+* Line 166
+
+* Lines 209-210
+
 (C) .Rmd Line number(s) for use of regular expressions:
 
-* Lines 22-23
+* Lines 24-25
 
-* Lines 40 & 43
+* Line 51
 
-* Lines 77-78
+* Line 68
 
-* Lines 80-81
+* Lines 86-88
+
+* Lines 92-95
+
+* Lines 102-103
+
+* Lines 105-108
+
+* Lines 134-138
+
+* Lines 156-160
 
 (D) .Rmd Line number(s) for use of user-defined functions:
 
@@ -54,13 +98,19 @@ Our final project uses data of poverty throughout the United States on a per-cou
 
 (E) .Rmd Line number(s) for use of loops and/or control flow:
 
-* Lines 75-84
+* Lines 69-70
 
 * Lines 98-104
 
 (F) .Rmd Line number(s) for use of vectorized functions:
 
-* Line 103
+* Lines 116-127
+
+* Lines 154-163
+
+* Lines 186-192
+
+* Lines 200-206
 
 ### Data Visualization (all 4 required)
 

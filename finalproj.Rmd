@@ -107,6 +107,8 @@ county_ec$county <- gsub('\\sIndependent\\sCity', '\\sCity', county_ec$county)
 county_ec$county <- gsub('\\sStaunton\\sWaynesboro', '', county_ec$county)
 county_ec$county <- county_ec$county %>% 
   trimws()
+county_ec <- merge(cp[, c(1:3,5)], county_ec, by = c('county', 'state', 'year')) %>% 
+  mutate(empl_rate = empl_count / total_count)
 
 county_data <- merge(cp, county_ec, by = c('county', 'state', 'year'))
 county_data$empl_rate <- county_data$empl_count / county_data$total_count
@@ -114,14 +116,16 @@ county_data$empl_rate <- county_data$empl_count / county_data$total_count
 # 'county_ec' to wide
 st <- list()
 for (i in 2013:2016) {
-  df <- county_ec %>% filter(year == i)
-  df <- df[, -2]
+  df <- county_ec %>% 
+    filter(year == i)
+  df <- df[, -c(3:4)]
   df_names <- names(df)
-  df_names[2] <- paste('ec', i %>% as.character(), sep = '')
-  df_names[3] <- paste('f_inc', i %>% as.character(), sep = '')
-  df_names[4] <- paste('inc', i %>% as.character(), sep = '')
-  df_names[5] <- paste('nf_inc', i %>% as.character(), sep = '')
-  df_names[6] <- paste('pf_inc', i %>% as.character(), sep = '')
+  df_names[3] <- paste('ec', i %>% as.character(), sep = '')
+  df_names[4] <- paste('f_inc', i %>% as.character(), sep = '')
+  df_names[5] <- paste('inc', i %>% as.character(), sep = '')
+  df_names[6] <- paste('nf_inc', i %>% as.character(), sep = '')
+  df_names[7] <- paste('pf_inc', i %>% as.character(), sep = '')
+  df_names[8] <- paste('er', i %>% as.character(), sep = '')
   names(df) <- df_names
   st[[i - 2012]] <- df
 }
@@ -139,12 +143,12 @@ county_poverty$county <- county_poverty$county %>%
   trimws()
 
 # merge 'county_ec_wide' with 'state_poverty'
-state_data_wide <- merge(county_ec_wide, county_poverty, by = c('state', 'county'))
+county_data_wide <- merge(county_ec_wide, county_poverty, by = c('state', 'county'))
 ```
 
 ```{r}
 # data set of poverty, by state
-state_poverty <- table(state_data_wide$state) %>% 
+state_poverty <- table(county_data_wide$state) %>% 
   data.frame()
 names(state_poverty) <- c('state', 'n_counties')
 
@@ -152,7 +156,7 @@ names(state_poverty) <- c('state', 'n_counties')
 # create a data table of summary stats per state
 sp <- list()
 for(i in 1:51) {
-  state_stats <- data.frame(summary(state_data_wide[which(state_data_wide$state == state_poverty$state[i]), ]))[13:204, 2:3] %>% 
+  state_stats <- data.frame(summary(county_data_wide[which(county_data_wide$state == state_poverty$state[i]), ]))[13:228, 2:3] %>% 
   mutate(stat = gsub('\\s*\\:', '', str_extract(Freq, '.*\\:')), 
          Freq = gsub(':', '', str_extract(Freq, '\\:.+')) %>% as.numeric()) %>% 
   reshape(idvar = 'Var2', timevar = 'stat', direction = 'wide') %>%
@@ -175,20 +179,18 @@ state_poverty$Var2[state_poverty$Var2 == 'inc'] <- 'income'
 state_poverty$Var2[state_poverty$Var2 == 'f_inc'] <- 'farm_income'
 state_poverty$Var2[state_poverty$Var2 == 'nf_inc'] <- 'nonfarm_income'
 state_poverty$Var2[state_poverty$Var2 == 'pf_inc'] <- 'p_farm_income'
+state_poverty$Var2[state_poverty$Var2 == 'er'] <- 'empl_rate'
 names(state_poverty) <- c('state', 'year', 'n_counties', 'countystat', '1st_quantile', '3rd_quantile', 'max', 'mean', 'median', 'minimum')
-
-# merge 'cp' with 'county_ec'
-county_data_tall <- merge(cp, county_ec, by = c('state', 'county', 'year'))
   
 # create variables measuring the standard deviation and variance of county stats, per year
 state_variance <- c()
 state_sd <- c()
 for(i in 1:nrow(state_poverty)) {
-  state_variance[i] <- county_data_tall %>% 
+  state_variance[i] <- county_data %>% 
     filter(state == state_poverty$state[i] & year == state_poverty$year[i]) %>% 
     select(state_poverty$countystat[i]) %>% 
     var()
-  state_sd[i] <- sapply(county_data_tall %>% filter(state == state_poverty$state[i] & year == state_poverty$year[i]) %>% select(state_poverty$countystat[i]), sd)[[1]][1]
+  state_sd[i] <- sapply(county_data %>% filter(state == state_poverty$state[i] & year == state_poverty$year[i]) %>% select(state_poverty$countystat[i]), sd)[[1]][1]
 }
 
 state_poverty$var <- state_variance
@@ -196,7 +198,7 @@ state_poverty$sd <- state_sd
 state_poverty[is.na(state_poverty)] <- 0
 
 # merge state stats with statistics on total state population ('state_ec'), total state poverty count, and overall state poverty rate (aggregating 'cp')
-# scrape from Wikipedia to transform full state names into abbreviated two letters
+# change 'state_ec' names from full words to 2-letter abbreviations
 for(i in 1:nrow(state_ec)) {
   if(state_ec$state[i] == 'District of Columbia') {
     state_ec$state[i] <- 'DC'
@@ -205,15 +207,14 @@ for(i in 1:nrow(state_ec)) {
   }
 }
 
-state_st <- merge(state_ec, 
+state_ec <- merge(state_ec, 
                        merge(aggregate(poverty_count ~ state + year, cp, sum), 
                              aggregate(total_count ~ state + year, cp, sum), 
                              by = c('state', 'year')) %>% 
                          mutate(poverty_rate = poverty_count / total_count), 
                        by = c('state', 'year')) %>% 
   mutate(empl_rate = empl_count / total_count)
-state_poverty <- merge(state_poverty, state_st, by = c('state', 'year'))
-
+state_poverty <- merge(state_poverty, state_ec, by = c('state', 'year'))
 
 # rename state-wide variables for clarity
 names(state_poverty) <- c('state', 'year', 'n_counties', 'countystat', '1st_quantile', '3rd_quantile', 'max', 'mean', 'median', 'minimum', 'var', 'sd', 'state_empl_count', 'state_farm_income', 'state_avg_income', 'state_nonfarm_income', 'state_p_farm_income', 'state_poverty_count', 'state_total_count', 'state_poverty_rate', 'state_empl_rate')
@@ -221,12 +222,36 @@ names(state_poverty) <- c('state', 'year', 'n_counties', 'countystat', '1st_quan
 
 
 ```{r}
-# crime data
+# per-state crime data, merge with 'state_data'
 state_crime <- read.csv(file = 'estimated_crimes.csv', header = TRUE, sep = ',')
 state_data <- merge(state_poverty, state_crime[, -c(2, 4:5, 15)], by.x = c('year', 'state'), by.y = c('year', 'state_abbr')) %>% 
   mutate(state_vcrime_rate = violent_crime / state_total_count,
          state_pcrime_rate = property_crime / state_total_count)
-state_data <- state_data[, c(1:12, 19, 15, 13, 21, 17:18, 22, 31, 27, 32, 20)]
+state_data <- state_data[, c(1:3, 19, 4:12, 15, 17:18, 20, 13, 21:22, 31, 27, 32)]
 
 # explain 'state_data' variables below
+# year: 2013-2016
+# state: state, within the United States
+# n_counties: number of counties in this state
+# state_total_count: state population
+# countystat: type of statistic, measured within counties of each state
+## empl_count: number of employed individuals working per county
+## farm_income: amount of income from farming per county
+## nonfarm_income: amount of income from non-farming industries per county
+## p_farm_income: ratio of 'farm_income' to 'nonfarm_income' per county, can be negative, indicator of how rural counties are
+## empl_rate: ratio of employed individuals working per county, can be >1
+## poverty_rate: percentage of individuals in poverty per county
+## poverty_count: number of individuals in poverty per county
+## total_count: population per county
+# 1st_quantile:sd: statistics on counties, per state and year
+# state_avg_income: average income per individual per state and year
+# state_p_farm_income: ratio of 'farm_income' to 'nonfarm_income' per state and year, can be negative, indicator of how rural counties are
+# state_poverty_count: number of individuals in poverty per state and year
+# state_poverty_rate: percentage of individuals in poverty per state and year
+# state_empl_count: number of employed individuals working per state and year
+# state_empl_rate: ratio of employed individuals working per state and year
+# violent_crime: number of violent crimes per state and year
+# state_vcrime_rate: rate of violent crimes per state and year
+# property_crime: number of property crimes per state and year
+# state_pcrime_rate: rate of property crimes per state and year
 ```

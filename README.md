@@ -9,6 +9,7 @@ Our final project uses data of poverty throughout the United States on a per-cou
 ## Sources
 
 Economic data, per county/state basis - *CAINC4__ALL_STATES_1969_2017.csv*
+
 https://drive.google.com/open?id=1kbtFd64UMSoJWdS3v6CK7bzCxKcGn8aa
 
 ## Requirements

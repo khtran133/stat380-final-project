@@ -1,0 +1,72 @@
+---
+title: "R Notebook"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+```{r}
+data("USArrests")
+head(USArrests)
+
+```
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+library(ggplot2)
+library(maptools)
+library(mapdata)
+library(ggthemes)
+library(tibble)
+library(viridis)
+library(RColorBrewer)
+library(readr)
+state_data <- read_csv("C:/Users/Dominic/Desktop/Entrophy/state_data.csv")
+View(state_data)
+library(maps)
+```
+
+```{r}
+df <- aggregate(state_poverty_rate ~ state, data = state_data, mean)
+df <- filter(df, 
+             state != "DC") 
+mycolors_True <- brewer.pal(9, "GnBu")
+states <- tolower(rownames(USArrests))
+map_50S <- map_data("state")
+ggplot(data = df,
+       aes(fill = state_poverty_rate)) +
+  labs(x = "Longitude", y = "Latitude", title = "Average Poverty Rate in States") +
+  geom_map(aes(map_id = states), map = map_50S) +
+  expand_limits(x = map_50S$long, y = map_50S$lat) +
+  theme_bw() + 
+  scale_fill_gradientn(name="Poverty Rate", colours = mycolors_True,
+                       na.value = "grey") 
+
+
+```
+
+```{r}
+df_var <- filter(state_data, 
+              countystat == "poverty_rate")
+df_var <- aggregate(var ~ state, data = state_data, mean)
+df_var <- filter(df_var,
+                 state != "DC") 
+mycolors_True <- brewer.pal(9, "GnBu")
+states <- tolower(rownames(USArrests))
+map_50S <- map_data("state")
+ggplot(data = df_var,
+       aes(fill = var)) +
+  labs(x = "Longitude", y = "Latitude", title = "Variance of Poverty Rate in States") +
+  geom_map(aes(map_id = states), map = map_50S) +
+  expand_limits(x = map_50S$long, y = map_50S$lat) +
+  theme_bw() + 
+  scale_fill_gradientn(name="Variance", colours = mycolors_True,
+                       na.value = "grey") 
+
+
+```

@@ -16,6 +16,9 @@ library(ggplot2)
 library(rvest)
 library(reshape2)
 library(readxl)
+library(rpart)
+library(partykit)
+library(mclust)
 ```
 
 ```{r}
@@ -272,6 +275,8 @@ state_data <- merge(state_ec, state_crime[, -c(2, 4:5, 15)],
          state_pcrime_rate = property_crime / state_total_count,
          state_pop_dens = state_total_count / state_area)
 state_data <- state_data[, c(1:3, 20, 18, 34, 15, 4:12, 17, 13, 22, 19, 21, 23, 32, 28, 33)]
+state_data$year <- state_data$year %>% as.numeric()
+row.names(state_data) <- state_data$state
 
 # explain 'state_data' variables below
 # year: 2013-2016
@@ -330,6 +335,55 @@ state_data %>%
   geom_density()
 ```
 
+```{r}
+# decision trees
+rpart(state_vcrime_rate ~ state + year, data = state_data)
+rpart(state_vcrime_rate ~ var, data = state_data %>% filter(countystat == 'poverty_rate')) %>% printcp()
+rpart(state_vcrime_rate ~ ., data = state_data)
+rpart(state_vcrime_rate ~ state + var, data = state_data %>% filter(countystat == 'pop_dens'))
+
+plot(as.party(rpart(state_vcrime_rate ~ ., data = state_data)))
+```
+
+```{r}
+state_data_pca_df <- state_data[,c(1:7, 17:25)] %>% 
+  unique()
+rownames(state_data_pca_df) <- paste(state_data_pca_df$state, state_data_pca_df$year, sep = '')
+
+state_data_pca <- state_data_pca_df[,-2] %>% 
+  prcomp(scale = TRUE)
+-1 * state_data_pca$rotation[, 1:2] %>% round(3)
+
+summary(state_data_pca)
+
+data.frame(sd = state_data_pca$sdev) %>% rownames_to_column() %>% mutate(rowname = parse_number(rowname), totalVar = sum(state_data_pca$sdev^2), pve = 100 * sd^2 / totalVar, cusum = cumsum(pve)) %>% ggplot(aes(x = rowname, y = pve)) + geom_line()
+
+data.frame(sd = state_data_pca$sdev) %>% rownames_to_column() %>% mutate(rowname = parse_number(rowname), totalVar = sum(state_data_pca$sdev^2), pve = 100 * sd^2 / totalVar, cusum = cumsum(pve)) %>% ggplot(aes(x = rowname, y = cusum)) + geom_line()
+```
+
+```{r}
+pca_data <- state_data_pca$x %>% 
+  data.frame() %>% 
+  rownames_to_column() %>% 
+  mutate(year = str_extract(rowname, '\\d+') %>% as.numeric(), 
+         rowname = gsub('\\d{4}', '', rowname))
+
+pca_data %>% 
+  ggplot(aes(x = -PC1, y = -PC2, colour = year)) + 
+  geom_text(aes(label = rowname), size = 3)
+
+aggregate(pca_data, by = list(pca_data$rowname), FUN = mean) %>% 
+  ggplot(aes(x = -PC1, y = -PC2)) + 
+  geom_text(aes(label = Group.1), size = 3)
+```
+
+```{r}
+state_data_pca$x %>% dist() %>% hclust() %>% plot(cex = 0.3)
+pca_data_alt <- aggregate(pca_data, by = list(pca_data$rowname), FUN = mean)
+rownames(pca_data_alt) <- pca_data_alt$Group.1
+pca_data_alt <- pca_data_alt[, 3:17]
+pca_data_alt %>% dist() %>% hclust() %>% plot(cex = 0.8)
+```
 
 ```{r}
 # visualization

@@ -8,13 +8,25 @@ Our final project uses data of poverty throughout the United States on a per-cou
 
 ## Sources
 
-Economic data, per county/state basis - *CAINC4__ALL_STATES_1969_2017.csv*
+**Economic data, per county/state basis** - *CAINC4__ALL_STATES_1969_2017.csv*
 
 https://drive.google.com/open?id=1kbtFd64UMSoJWdS3v6CK7bzCxKcGn8aa
 
 https://apps.bea.gov/regional/
 
-Notes: *file exceeds 25MB, too large to upload to github*
+Notes: Data from Bureau of Economic Analysis, *file exceeds 25MB, too large to upload to github*
+
+**Poverty data, per county basis** - *county_poverty_hist.csv*
+
+https://www.census.gov/programs-surveys/saipe/data/datasets.2016.html
+
+Notes: Data from SAIPE (Small Area Income and Poverty Esimates) Program
+
+**Crime data, per state basis** - *estimated_crimes.csv*
+
+https://crime-data-explorer.fr.cloud.gov/downloads-and-docs
+
+Notes: Data from Uniform Crime Reporting (UCR) Program
 
 ## Requirements
 

@@ -1,0 +1,29 @@
+---
+title: "R Notebook"
+output:
+  html_document: default
+  html_notebook: default
+---
+```{r}
+library(ggplot2)
+library(maptools)
+library(mapdata)
+library(ggthemes)
+library(tibble)
+library(viridis)
+library(RColorBrewer)
+library(readr)
+state_data <- read_csv("C:/Users/Dominic/Desktop/Entrophy/state_data.csv")
+View(state_data)
+library(maps)
+```
+
+```{r fig.width=16, fig.height=6}
+df_pcrime <- aggregate(state_pcrime_rate ~ state, data = state_data, mean)
+ggplot(df_pcrime, aes(x = state , y = state_pcrime_rate , colour = state,
+                       group = state)) +
+  geom_label(aes(label = state), check_overlap = TRUE)+
+  labs(x = "State", 
+       y = "Average State Property Crime rate Per state (including DC)", 
+       title = "Average State Property Crime rate Per state (including DC)")
+```

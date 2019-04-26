@@ -6,6 +6,11 @@
 
 Our final project uses data of poverty throughout the United States on a per-county basis, and attempts to establish a relationship between poverty and crime rates. Most importantly, it attempts to establish a relationship between inequality in poverty, as defined by variance in poverty statistics per county (within the same state), and crime rates. 
 
+## Sources
+
+Economic data, per county/state basis - *CAINC4__ALL_STATES_1969_2017.csv*
+https://drive.google.com/open?id=1kbtFd64UMSoJWdS3v6CK7bzCxKcGn8aa
+
 ## Requirements
 
 ### Joins Multiple Data Sources

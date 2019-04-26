@@ -28,6 +28,12 @@ https://crime-data-explorer.fr.cloud.gov/downloads-and-docs
 
 Notes: Data from Uniform Crime Reporting (UCR) Program
 
+**Land data, per county/state basis** - *LND01.xls*
+
+https://www.census.gov/library/publications/2011/compendia/usa-counties-2011.html
+
+Notes: Taken from 2011 Census
+
 ## Requirements
 
 ### Joins Multiple Data Sources

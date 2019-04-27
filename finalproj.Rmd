@@ -355,9 +355,13 @@ state_data_pca <- state_data_pca_df[,-2] %>%
 -1 * state_data_pca$rotation[, 1:2] %>% round(3)
 
 summary(state_data_pca)
+```
 
+```{r}
 data.frame(sd = state_data_pca$sdev) %>% rownames_to_column() %>% mutate(rowname = parse_number(rowname), totalVar = sum(state_data_pca$sdev^2), pve = 100 * sd^2 / totalVar, cusum = cumsum(pve)) %>% ggplot(aes(x = rowname, y = pve)) + geom_line()
+```
 
+```{r}
 data.frame(sd = state_data_pca$sdev) %>% rownames_to_column() %>% mutate(rowname = parse_number(rowname), totalVar = sum(state_data_pca$sdev^2), pve = 100 * sd^2 / totalVar, cusum = cumsum(pve)) %>% ggplot(aes(x = rowname, y = cusum)) + geom_line()
 ```
 
@@ -371,18 +375,22 @@ pca_data <- state_data_pca$x %>%
 pca_data %>% 
   ggplot(aes(x = -PC1, y = -PC2, colour = year)) + 
   geom_text(aes(label = rowname), size = 3)
+```
 
+```{r}
 aggregate(pca_data, by = list(pca_data$rowname), FUN = mean) %>% 
   ggplot(aes(x = -PC1, y = -PC2)) + 
   geom_text(aes(label = Group.1), size = 3)
 ```
 
 ```{r}
-state_data_pca$x %>% dist() %>% hclust() %>% plot(cex = 0.3)
 pca_data_alt <- aggregate(pca_data, by = list(pca_data$rowname), FUN = mean)
 rownames(pca_data_alt) <- pca_data_alt$Group.1
 pca_data_alt <- pca_data_alt[, 3:17]
-pca_data_alt %>% dist() %>% hclust() %>% plot(cex = 0.8)
+pca_data_alt %>% 
+  dist() %>% 
+  hclust() %>% 
+  plot(cex = 0.8)
 ```
 
 ```{r}
@@ -393,52 +401,83 @@ df <- filter(df,
 mycolors_True <- brewer.pal(9, "GnBu")
 states <- tolower(rownames(USArrests))
 map_50S <- map_data("state")
+
 ggplot(data = df,
        aes(fill = state_poverty_rate)) +
   labs(x = "Longitude", y = "Latitude", title = "Average Poverty Rate in States") +
   geom_map(aes(map_id = states), map = map_50S) +
   expand_limits(x = map_50S$long, y = map_50S$lat) +
   theme_bw() + 
-  scale_fill_gradientn(name="Poverty Rate", colours = mycolors_True,
+  scale_fill_gradientn(name = "Poverty Rate", colours = mycolors_True,
                        na.value = "grey") 
 ```
 
 ```{r}
 # visualization
-df_var1 <- filter(state_data, 
-              countystat == "poverty_rate")
-df_var1 <- aggregate(var ~ state, data = state_data, mean)
-df_var1 <- filter(df_var1, 
-                  state != "DC") 
-mycolors_True <- brewer.pal(9, "GnBu")
-states <- tolower(rownames(USArrests))
-map_50S <- map_data("state")
-ggplot(data = df_var1,
-       aes(fill = var)) +
-  labs(x = "Longitude", y = "Latitude", title = "Variance of Poverty Rate in Counties, Per State") +
-  geom_map(aes(map_id = states), map = map_50S) +
-  expand_limits(x = map_50S$long, y = map_50S$lat) +
+
+# fixed map
+merge(map_data("state"), 
+                      aggregate(var ~ state, 
+                                data = filter(state_data, countystat == "poverty_rate") %>% 
+                                  select(year, state, var) %>% 
+                                  unique(), 
+                                FUN = mean) %>% 
+                        mutate(state = abbr2state(state) %>% tolower()), 
+                      by.x = 'region', by.y = 'state') %>% 
+  ggplot() + 
+  geom_polygon(aes(long, lat, group = group, fill = var)) + 
+  scale_fill_gradientn(colours = mycolors_True, trans = 'log') + 
   theme_bw() + 
-  scale_fill_gradientn(name = "Variance", colours = mycolors_True,
-                       na.value = "grey") 
+  labs(x = "Longitude", y = "Latitude", title = "Variance of Poverty Rate in Counties, Per State")
 ```
 
 ```{r}
 # visualization
-df_var2 <- filter(state_data, 
-              countystat == "pop_dens")
-df_var2 <- aggregate(var ~ state, data = state_data, mean)
-df_var2 <- filter(df_var2, 
-                  state != "DC") 
-mycolors_True <- brewer.pal(9, "GnBu")
-states <- tolower(rownames(USArrests))
-map_50S <- map_data("state")
-ggplot(data = df_var2,
-       aes(fill = var)) +
-  labs(x = "Longitude", y = "Latitude", title = "Variance of Population Density in Counties, Per State") +
-  geom_map(aes(map_id = states), map = map_50S) +
-  expand_limits(x = map_50S$long, y = map_50S$lat) +
+
+# change two-letter abbreviation to full state name for merging
+abbr2state <- function(abbr){
+  ab    <- tolower(c("AL",
+             "AK", "AZ", "KS", "UT", "CO", "CT",
+             "DE", "FL", "GA", "HI", "ID", "IL",
+             "IN", "IA", "AR", "KY", "LA", "ME",
+             "MD", "MA", "MI", "MN", "MS", "MO",
+             "MT", "NE", "NV", "NH", "NJ", "NM",
+             "NY", "NC", "ND", "OH", "OK", "OR",
+             "PA", "RI", "SC", "SD", "TN", "TX",
+             "CA", "VT", "VA", "WA", "WV", "WI",
+             "WY", "DC"))
+  st    <- c("Alabama",
+             "Alaska", "Arizona", "Kansas",
+             "Utah", "Colorado", "Connecticut",
+             "Delaware", "Florida", "Georgia",
+             "Hawaii", "Idaho", "Illinois",
+             "Indiana", "Iowa", "Arkansas",
+             "Kentucky", "Louisiana", "Maine",
+             "Maryland", "Massachusetts", "Michigan",
+             "Minnesota", "Mississippi", "Missouri",
+             "Montana", "Nebraska", "Nevada",
+             "New Hampshire", "New Jersey", "New Mexico",
+             "New York", "North Carolina", "North Dakota",
+             "Ohio", "Oklahoma", "Oregon",
+             "Pennsylvania", "Rhode Island", "South Carolina",
+             "South Dakota", "Tennessee", "Texas",
+             "California", "Vermont", "Virginia",
+             "Washington", "West Virginia", "Wisconsin",
+             "Wyoming", "District of Columbia")
+  st[match(tolower(abbr), ab)]
+}
+
+merge(map_data("state"), 
+                      aggregate(var ~ state, 
+                                data = filter(state_data, countystat == "pop_dens") %>% 
+                                  select(year, state, var) %>% 
+                                  unique(), 
+                                FUN = mean) %>% 
+                        mutate(state = abbr2state(state) %>% tolower()), 
+                      by.x = 'region', by.y = 'state') %>% 
+  ggplot() + 
+  geom_polygon(aes(long, lat, group = group, fill = var)) + 
+  scale_fill_gradientn(colours = mycolors_True, trans = 'log') + 
   theme_bw() + 
-  scale_fill_gradientn(name = "Variance", colours = mycolors_True,
-                       na.value = "grey") 
+  labs(x = "Longitude", y = "Latitude", title = "Variance of Population Density in Counties, Per State")
 ```

@@ -1,0 +1,47 @@
+---
+title: "R Notebook"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+```{r}
+rm(list = ls())
+library(ggplot2)
+library(maptools)
+library(mapdata)
+library(ggthemes)
+library(tibble)
+library(viridis)
+library(RColorBrewer)
+library(readr)
+library(maps)
+library(mclust)
+library(cluster)
+library(fpc)
+state_data <- read_csv("C:/Users/Dominic/Desktop/Entrophy/state_data.csv")
+View(state_data)
+```
+
+
+
+
+```{r fig.width=16, fig.height=6}
+df_Farm <- aggregate(state_p_farm_income ~ state, data = state_data, mean)
+df_Counties <- aggregate(n_counties ~ state, data = state_data, mean)
+df_Counties$state = NULL
+df_Farm$state = NULL
+df_Farm$Counties <- df_Counties$n_counties
+df_Farm_Counties <- df_Farm
+```
+
+```{r}
+set.seed(100)
+fit <- kmeans(df_Farm_Counties, 5)
+clusplot(df_Farm_Counties, fit$cluster, color=TRUE, shade=TRUE,
+   labels=2, lines=0)
+```
+
+
+
+

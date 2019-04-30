@@ -19,6 +19,14 @@ library(readxl)
 library(rpart)
 library(partykit)
 library(mclust)
+library(tibble)
+library(readr)
+library(viridis)
+library(RColorBrewer)
+library(maps)
+library(maptools)
+library(mapdata)
+library(ggthemes)
 ```
 
 ```{r}
@@ -276,7 +284,6 @@ state_data <- merge(state_ec, state_crime[, -c(2, 4:5, 15)],
          state_pop_dens = state_total_count / state_area)
 state_data <- state_data[, c(1:3, 20, 18, 34, 15, 4:12, 17, 13, 22, 19, 21, 23, 32, 28, 33)]
 state_data$year <- state_data$year %>% as.numeric()
-row.names(state_data) <- state_data$state
 
 # explain 'state_data' variables below
 # year: 2013-2016
@@ -314,16 +321,16 @@ lm(state_vcrime_rate ~ state %>% as.factor() + var,
    data = state_data %>% filter(countystat == 'poverty_rate')) %>% 
   msummary()
 
-lm(state_vcrime_rate ~ state %>% as.factor() + year %>% as.factor() + var, 
+lm(state_vcrime_rate ~ state %>% as.factor() + year + var, 
    data = state_data %>% filter(countystat == 'poverty_rate')) %>% 
   msummary()
-lm(state_vcrime_rate ~ state %>% as.factor() + year %>% as.factor() + var, 
+lm(state_vcrime_rate ~ state %>% as.factor() + year + var, 
    data = state_data %>% filter(countystat == 'pop_dens')) %>% 
   msummary()
-lm(state_vcrime_rate ~ state %>% as.factor() + year %>% as.factor() + var, 
+lm(state_vcrime_rate ~ state %>% as.factor() + year + var, 
    data = state_data %>% filter(countystat == 'p_farm_income')) %>% 
   msummary()
-lm(state_vcrime_rate ~ state %>% as.factor() + year %>% as.factor() + var, 
+lm(state_vcrime_rate ~ state %>% as.factor() + year + var, 
    data = state_data %>% filter(countystat == 'empl_rate')) %>% 
   msummary()
 
@@ -358,11 +365,25 @@ summary(state_data_pca)
 ```
 
 ```{r}
-data.frame(sd = state_data_pca$sdev) %>% rownames_to_column() %>% mutate(rowname = parse_number(rowname), totalVar = sum(state_data_pca$sdev^2), pve = 100 * sd^2 / totalVar, cusum = cumsum(pve)) %>% ggplot(aes(x = rowname, y = pve)) + geom_line()
+data.frame(sd = state_data_pca$sdev) %>% 
+  rownames_to_column() %>% 
+  mutate(rowname = parse_number(rowname), 
+         totalVar = sum(state_data_pca$sdev^2), 
+         pve = 100 * sd^2 / totalVar, 
+         cusum = cumsum(pve)) %>% 
+  ggplot(aes(x = rowname, y = pve)) + 
+  geom_line()
 ```
 
 ```{r}
-data.frame(sd = state_data_pca$sdev) %>% rownames_to_column() %>% mutate(rowname = parse_number(rowname), totalVar = sum(state_data_pca$sdev^2), pve = 100 * sd^2 / totalVar, cusum = cumsum(pve)) %>% ggplot(aes(x = rowname, y = cusum)) + geom_line()
+data.frame(sd = state_data_pca$sdev) %>% 
+  rownames_to_column() %>% 
+  mutate(rowname = parse_number(rowname), 
+         totalVar = sum(state_data_pca$sdev^2), 
+         pve = 100 * sd^2 / totalVar, 
+         cusum = cumsum(pve)) %>% 
+  ggplot(aes(x = rowname, y = cusum)) + 
+  geom_line()
 ```
 
 ```{r}
@@ -413,27 +434,6 @@ ggplot(data = df,
 ```
 
 ```{r}
-# visualization
-
-# fixed map
-merge(map_data("state"), 
-                      aggregate(var ~ state, 
-                                data = filter(state_data, countystat == "poverty_rate") %>% 
-                                  select(year, state, var) %>% 
-                                  unique(), 
-                                FUN = mean) %>% 
-                        mutate(state = abbr2state(state) %>% tolower()), 
-                      by.x = 'region', by.y = 'state') %>% 
-  ggplot() + 
-  geom_polygon(aes(long, lat, group = group, fill = var)) + 
-  scale_fill_gradientn(colours = mycolors_True, trans = 'log') + 
-  theme_bw() + 
-  labs(x = "Longitude", y = "Latitude", title = "Variance of Poverty Rate in Counties, Per State")
-```
-
-```{r}
-# visualization
-
 # change two-letter abbreviation to full state name for merging
 abbr2state <- function(abbr){
   ab    <- tolower(c("AL",
@@ -467,6 +467,27 @@ abbr2state <- function(abbr){
   st[match(tolower(abbr), ab)]
 }
 
+# visualization
+
+# fixed map
+merge(map_data("state"), 
+                      aggregate(var ~ state, 
+                                data = filter(state_data, countystat == "poverty_rate") %>% 
+                                  select(year, state, var) %>% 
+                                  unique(), 
+                                FUN = mean) %>% 
+                        mutate(state = abbr2state(state) %>% tolower()), 
+                      by.x = 'region', by.y = 'state') %>% 
+  ggplot() + 
+  geom_polygon(aes(long, lat, group = group, fill = var)) + 
+  scale_fill_gradientn(colours = mycolors_True, trans = 'log') + 
+  theme_bw() + 
+  labs(x = "Longitude", y = "Latitude", title = "Variance of Poverty Rate in Counties, Per State")
+```
+
+```{r}
+# visualization
+
 merge(map_data("state"), 
                       aggregate(var ~ state, 
                                 data = filter(state_data, countystat == "pop_dens") %>% 
@@ -480,4 +501,16 @@ merge(map_data("state"),
   scale_fill_gradientn(colours = mycolors_True, trans = 'log') + 
   theme_bw() + 
   labs(x = "Longitude", y = "Latitude", title = "Variance of Population Density in Counties, Per State")
+```
+
+```{r fig.width=16, fig.height=6}
+df_pcrime <- aggregate(state_pcrime_rate ~ state, data = state_data, mean)
+ggplot(df_pcrime, aes(x = state, 
+                      y = state_pcrime_rate, 
+                      colour = state, 
+                      group = state)) +
+  geom_label(aes(label = state), check_overlap = TRUE)+
+  labs(x = "State", 
+       y = "Average State Property Crime rate Per state (including DC)", 
+       title = "Average State Property Crime rate Per state (including DC)")
 ```

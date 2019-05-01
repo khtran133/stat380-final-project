@@ -40,144 +40,160 @@ Notes: Taken from 2011 Census
 
 (A) .Rmd Line number(s) for join operation:
 
-* Lines 111-112
+* Lines 110-117
 
-* Lines 141-142
+* Lines 154-172
 
-* Lines 180-181
+* Lines 311-318
 
-* Lines 225-229
+* Line 484
 
 ### Data Wrangling (5 of 6 required)
 
 (A) .Rmd Line number(s) for an example of general purpose data wrangling:
 
-* Line 36
+* Lines 64-65
 
-* Lines 39-43
+* Lines 81-85
 
-* Lines 56-59
+* Lines 91-95
 
-* Line 68
+* Line 106
 
-* Lines 77-79
+* Line 111-113
 
-* Lines 86-90
+* Lines 122-128
 
-* Lines 100-101
+* Lines 154-155
 
-* Line 111
+* Lines 176-179
 
-* Lines 147-148
+* Lines 202-207
 
-* Lines 156-161
+* Lines 219-236
 
-* Line 167
+* Lines 287295
 
-* Line 181
-
-* Lines 188-191
-
-* Lines 208-215
-
-* Lines 226-228
+* Lines 312-316
 
 (B) .Rmd Line number(s) for a spread & gather (or equivalent):
 
-* Lines 64-68
+* Lines 91-95
 
-* Line 79
+* Lines 122-128
 
-* Lines 85-89
-
-* Lines 129-131
-
-* Line 142
-
-* Line 158
-
-* Line 166
-
-* Lines 209-210
+* Lines 181-207
 
 (C) .Rmd Line number(s) for use of regular expressions:
 
-* Lines 24-25
+* Lines 45-46
 
-* Line 51
+* Lines 76-77
 
-* Line 68
+* Lines 123-125
 
-* Lines 86-88
+* Lines 140-141
 
-* Lines 92-95
+* Lines 158-163
 
-* Lines 102-103
+* Lines 166-169
 
-* Lines 105-108
-
-* Lines 134-138
-
-* Lines 156-160
+* Lines 222-229
 
 (D) .Rmd Line number(s) for use of user-defined functions:
 
-*n/a*
+* Lines 499-529 (`https://rdrr.io/cran/openintro/man/abbr2state.html`)
 
 (E) .Rmd Line number(s) for use of loops and/or control flow:
 
-* Lines 69-70
+* Lines 165-172
 
-* Lines 98-104
+* Lines 183-200
+
+* Lines 219-232
+
+* Lines 253-285
 
 (F) .Rmd Line number(s) for use of vectorized functions:
 
-* Lines 116-127
+* Lines 97-98
 
-* Lines 154-163
+* Lines 105
 
-* Lines 186-192
+* Lines 267-270
 
-* Lines 200-206
+* Lines 
+
+* Lines 
 
 ### Data Visualization (all 4 required)
 
 (A) .Rmd Line number(s) for visualization with layered data from distinct data structures–e.g., a `geom` that
 plots data from a secondary data frame:
 
-* 
+* Lines 486-494
+
+* Lines 534-552
+
+* Lines 558-576
 
 (B) .Rmd Line number(s) for visualization displaying many–3 or more–variables (A, B, C, & D must be
 four **different** plots):
 
-* 
+* Lines 534-552
+
+* Lines 558-576
 
 (C) .Rmd Line number(s) for a third visualization:
 
-* 
+* Line 370-375
 
 (D) .Rmd Line number(s) for a fourth visualization:
 
-* 
+* Line 391
+
+Other visualizations:
+
+* Line 395
+
+* Lines 414-421
+
+* Lines 425-432
+
+* Lines 442-445
+
+* Lines 460-463
+
+* Lines 471-474
+
+* Lines 580-588
+
+* Lines 599-606
+
+* Lines 617-624
+
+* Lines 634-642
 
 ### Data Analysis (3 of 5 required)
 
 (A) .Rmd Line number(s) for statistical modeling/supervised learning:
 
-* 
+* Lines 352-395
 
 (B) .Rmd Line number(s) for unsupervised learning:
 
-* 
+* Lines 399-474
 
 (C) .Rmd Line number(s) for user-defined simulation(s):
 
-* 
+*n/a*
 
 (D) .Rmd Line number(s) for analysis of text data:
 
-* 
+*n/a*
 
 (E) .Rmd Line number(s) for R tools for “big data”:
 
-* 
+* Line 37
+
+* Line 646

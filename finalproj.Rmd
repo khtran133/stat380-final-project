@@ -495,7 +495,7 @@ ggplot(data = df,
 ```
 
 ```{r}
-# change two-letter abbreviation to full state name for merging
+# change two-letter abbreviation to full state name for merging, 'https://rdrr.io/cran/openintro/man/abbr2state.html'
 abbr2state <- function(abbr){
   ab    <- tolower(c("AL",
              "AK", "AZ", "KS", "UT", "CO", "CT",

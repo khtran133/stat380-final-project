@@ -27,6 +27,9 @@ library(maps)
 library(maptools)
 library(mapdata)
 library(ggthemes)
+library(cluster)
+library(fpca)
+library(doParallel)
 ```
 
 ```{r}
@@ -44,7 +47,11 @@ county_poverty <- county_poverty[-3]
 # pYEAR = number of people in poverty, for the given year
 # prYEAR = poverty rate, for the given year
 # popYEAR = total population, for the given year
-names(county_poverty) <- c('county', 'state', 'p2013', 'p2014', 'p2015', 'pr2013', 'pr2014', 'pr2015', 'pr2016', 'p2016', 'pop2013', 'pop2014', 'pop2015', 'pop2016')
+names(county_poverty) <- c('county', 'state', 
+                           'p2013', 'p2014', 'p2015', 
+                           'pr2013', 'pr2014', 'pr2015', 
+                           'pr2016', 'p2016', 'pop2013', 
+                           'pop2014', 'pop2015', 'pop2016')
 
 county_poverty <- county_poverty %>% 
   na.omit() %>%
@@ -317,22 +324,21 @@ write.csv(state_data, file = 'state_data.csv')
 
 ```{r}
 # not the worst regressions ever tbh
-lm(state_vcrime_rate ~ state %>% as.factor() + var, 
+lm(state_vcrime_rate ~ state + year + var, 
    data = state_data %>% filter(countystat == 'poverty_rate')) %>% 
   msummary()
-
-lm(state_vcrime_rate ~ state %>% as.factor() + year + var, 
-   data = state_data %>% filter(countystat == 'poverty_rate')) %>% 
-  msummary()
-lm(state_vcrime_rate ~ state %>% as.factor() + year + var, 
+lm(state_vcrime_rate ~ state + year + var, 
    data = state_data %>% filter(countystat == 'pop_dens')) %>% 
   msummary()
-lm(state_vcrime_rate ~ state %>% as.factor() + year + var, 
+lm(state_vcrime_rate ~ state + year + mean, 
    data = state_data %>% filter(countystat == 'p_farm_income')) %>% 
   msummary()
-lm(state_vcrime_rate ~ state %>% as.factor() + year + var, 
+lm(state_vcrime_rate ~ state + year + var, 
    data = state_data %>% filter(countystat == 'empl_rate')) %>% 
   msummary()
+lm(state_vcrime_rate ~ state + year + mean, 
+   data = state_data %>% filter(countystat == 'income')) %>% 
+    msummary()
 
 state_data %>% 
   filter(countystat == 'poverty_rate') %>% 
@@ -345,11 +351,17 @@ state_data %>%
 ```{r}
 # decision trees
 rpart(state_vcrime_rate ~ state + year, data = state_data)
-rpart(state_vcrime_rate ~ var, data = state_data %>% filter(countystat == 'poverty_rate')) %>% printcp()
+rpart(state_vcrime_rate ~ var, data = state_data %>% filter(countystat == 'poverty_rate'))
 rpart(state_vcrime_rate ~ ., data = state_data)
 rpart(state_vcrime_rate ~ state + var, data = state_data %>% filter(countystat == 'pop_dens'))
+```
 
+```{r}
 plot(as.party(rpart(state_vcrime_rate ~ ., data = state_data)))
+```
+
+```{r}
+plot(as.party(rpart(state_vcrime_rate ~ var + state_avg_income, data = state_data %>% filter(countystat == 'income'))))
 ```
 
 ```{r}
@@ -357,9 +369,9 @@ state_data_pca_df <- state_data[,c(1:7, 17:25)] %>%
   unique()
 rownames(state_data_pca_df) <- paste(state_data_pca_df$state, state_data_pca_df$year, sep = '')
 
-state_data_pca <- state_data_pca_df[,-2] %>% 
+state_data_pca <- state_data_pca_df[, -2] %>% 
   prcomp(scale = TRUE)
--1 * state_data_pca$rotation[, 1:2] %>% round(3)
+-1 * state_data_pca$rotation[, 1:4] %>% round(3)
 
 summary(state_data_pca)
 ```
@@ -394,11 +406,12 @@ pca_data <- state_data_pca$x %>%
          rowname = gsub('\\d{4}', '', rowname))
 
 pca_data %>% 
-  ggplot(aes(x = -PC1, y = -PC2, colour = year)) + 
+  ggplot(aes(x = -PC1, y = -PC2, colour = year %>% as.factor())) + 
   geom_text(aes(label = rowname), size = 3)
 ```
 
 ```{r}
+# averaged values, per year
 aggregate(pca_data, by = list(pca_data$rowname), FUN = mean) %>% 
   ggplot(aes(x = -PC1, y = -PC2)) + 
   geom_text(aes(label = Group.1), size = 3)
@@ -412,6 +425,16 @@ pca_data_alt %>%
   dist() %>% 
   hclust() %>% 
   plot(cex = 0.8)
+```
+
+```{r fig.width = 16, fig.height = 6}
+pca_data2 <- state_data_pca$x %>% 
+  data.frame() %>% 
+  rownames_to_column() 
+pca_data2 %>% 
+  dist() %>% 
+  hclust() %>% 
+  plot(cex = 0.8, labels = pca_data2$rowname)
 ```
 
 ```{r}
@@ -503,14 +526,78 @@ merge(map_data("state"),
   labs(x = "Longitude", y = "Latitude", title = "Variance of Population Density in Counties, Per State")
 ```
 
-```{r fig.width=16, fig.height=6}
-df_pcrime <- aggregate(state_pcrime_rate ~ state, data = state_data, mean)
-ggplot(df_pcrime, aes(x = state, 
-                      y = state_pcrime_rate, 
-                      colour = state, 
-                      group = state)) +
+```{r fig.width = 16, fig.height = 6}
+aggregate(state_pcrime_rate ~ state, data = state_data, mean) %>% 
+  ggplot(aes(x = state, 
+             y = state_pcrime_rate, 
+             colour = state, 
+             group = state)) +
   geom_label(aes(label = state), check_overlap = TRUE)+
   labs(x = "State", 
-       y = "Average State Property Crime rate Per state (including DC)", 
-       title = "Average State Property Crime rate Per state (including DC)")
+       y = "Average State Property Crime Rate Per state (including DC)", 
+       title = "Average State Property Crime Rate Per state (including DC)")
+```
+
+```{r}
+df_Farm_Counties <- merge(aggregate(state_p_farm_income ~ state, data = state_data, mean), 
+                          aggregate(n_counties ~ state, data = state_data, mean), 
+                          by = c('state'))
+rownames(df_Farm_Counties) <- df_Farm_Counties$state
+
+set.seed(100)
+fit <- kmeans(df_Farm_Counties[, 2:3], 5)
+clusplot(df_Farm_Counties, 
+         fit$cluster, 
+         color = TRUE, 
+         shade = TRUE, 
+         labels = 2, 
+         lines = 0,
+         cex = 0.75)
+```
+
+```{r}
+df_Farm_Poverty <- merge(aggregate(state_p_farm_income ~ state, data = state_data, mean), 
+                         aggregate(state_poverty_rate ~ state, data = state_data, mean), 
+                         by = c('state'))
+rownames(df_Farm_Poverty) <- df_Farm_Poverty$state
+
+set.seed(100)
+fit2 <- kmeans(df_Farm_Poverty[, 2:3], 5)
+clusplot(df_Farm_Poverty, 
+         fit2$cluster, 
+         color = TRUE, 
+         shade = TRUE, 
+         labels = 2, 
+         lines = 0,
+         cex = 0.75)
+```
+
+```{r}
+myCluster <- makeCluster(detectCores() - 1, type = "FORK")
+
+system.time({
+  lm1 <- lm(state_vcrime_rate ~ state + year + var, 
+     data = state_data %>% filter(countystat == 'poverty_rate')) %>% 
+    msummary()
+  lm2 <- lm(state_vcrime_rate ~ state + year + var, 
+            data = state_data %>% filter(countystat == 'pop_dens')) %>% 
+    msummary()
+  lm3 <- lm(state_vcrime_rate ~ state + year + mean, 
+            data = state_data %>% filter(countystat == 'p_farm_income')) %>% 
+    msummary()
+  lm4 <- lm(state_vcrime_rate ~ state + year + var, 
+            data = state_data %>% filter(countystat == 'empl_rate')) %>% 
+    msummary()
+  lm5 <- lm(state_vcrime_rate ~ state + year + mean, 
+            data = state_data %>% filter(countystat == 'income')) %>% 
+    msummary()
+})
+
+lm1
+lm2
+lm3
+lm4
+lm5
+
+stopCluster(myCluster)
 ```

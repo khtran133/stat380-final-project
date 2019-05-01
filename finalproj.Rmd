@@ -345,7 +345,7 @@ write.csv(state_data, file = 'state_data.csv')
 ```
 
 ```{r}
-# not the worst regressions ever tbh
+# various regressions
 lm(state_vcrime_rate ~ state + year + var, 
    data = state_data %>% filter(countystat == 'poverty_rate')) %>% 
   msummary()
@@ -361,7 +361,9 @@ lm(state_vcrime_rate ~ state + year + var,
 lm(state_vcrime_rate ~ state + year + mean, 
    data = state_data %>% filter(countystat == 'income')) %>% 
     msummary()
+```
 
+```{r}
 state_data %>% 
   filter(countystat == 'poverty_rate') %>% 
   select(var) %>% 

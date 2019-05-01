@@ -33,6 +33,9 @@ library(doParallel)
 ```
 
 ```{r}
+#using multiple cores
+myCluster <- makeCluster(detectCores() - 1, type = "FORK")
+
 # options
 # display as decimal, not scientific notation
 options(scipen = 999)
@@ -464,6 +467,7 @@ pca_data_alt %>%
 pca_data2 <- state_data_pca$x %>% 
   data.frame() %>% 
   rownames_to_column() 
+
 pca_data2 %>% 
   dist() %>% 
   hclust() %>% 
@@ -639,32 +643,5 @@ clusplot(df_Crime_Poverty,
 ```
 
 ```{r}
-#using multiple cores
-myCluster <- makeCluster(detectCores() - 1, type = "FORK")
-
-system.time({
-  lm1 <- lm(state_vcrime_rate ~ state + year + var, 
-     data = state_data %>% filter(countystat == 'poverty_rate')) %>% 
-    msummary()
-  lm2 <- lm(state_vcrime_rate ~ state + year + var, 
-            data = state_data %>% filter(countystat == 'pop_dens')) %>% 
-    msummary()
-  lm3 <- lm(state_vcrime_rate ~ state + year + mean, 
-            data = state_data %>% filter(countystat == 'p_farm_income')) %>% 
-    msummary()
-  lm4 <- lm(state_vcrime_rate ~ state + year + var, 
-            data = state_data %>% filter(countystat == 'empl_rate')) %>% 
-    msummary()
-  lm5 <- lm(state_vcrime_rate ~ state + year + mean, 
-            data = state_data %>% filter(countystat == 'income')) %>% 
-    msummary()
-})
-
-lm1
-lm2
-lm3
-lm4
-lm5
-
 stopCluster(myCluster)
 ```
